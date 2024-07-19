@@ -2,7 +2,7 @@
 #include "stdlib.h"
 #include "parsing.h"
 
-#define MAX 3         //кол-во записей в абонентской книге
+#define MAX 99         //кол-во записей в абонентской книге
 #define STR_LENGTH 10
 
 /*
