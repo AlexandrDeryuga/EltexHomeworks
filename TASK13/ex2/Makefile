@@ -1,0 +1,19 @@
+1 all: .PHONY d13ex2.o dinamic_msg.o interface.o
+		gcc d13ex2.o dinamic_msg.o interface.o -o d13ex2 -lpanel -lncurses
+
+2 d13ex2.o: d13ex2.c 
+		gcc d13ex2.c -c 
+		
+		
+3 .PHONY: clean.o
+
+4 clean.o:
+		rm -rf *.o
+
+5 dinamic_msg.o: dinamic_msg.c dinamic_msg.h
+		gcc dinamic_msg.c -c
+
+6 interface.o: interface.c interface.h
+		gcc interface.c -c
+
+ 

@@ -1,0 +1,11 @@
+interp> call fork
+Fork args[1]>>
+Fork execute>
+5:
+test.in 
+test.in2 
+interp> call fork
+Fork args[1]>>
+Fork execute>
+interp FORK>команда выполнена
+interp> код возврата 1
