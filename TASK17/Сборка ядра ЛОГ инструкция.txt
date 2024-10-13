@@ -1,0 +1,146 @@
+Сборка ядра - ЛОГ, инструкция
+https://wiki.merionet.ru/articles/poshagovoe-rukovodstvo-kak-sobrat-yadro-linux-s-nulya     - быстрая инструкция, рабочая только с grab лучше отдельно ставить
+https://nixm.ru/viewtopic.php?t=60   - лекция, немного устаревшая информация но в целом помогает
+===============================================
+
+
+1. Подготовка платформы
+1.1    Клонируем нашу виртуалку, и в менеджере виртуальных дисков  ставим размер что бы было 25 гигов свободного места
+1.2   в  gparted меняем размер тома что бы было использовано ранее выделенное  менеджером пространство, в первый раз я этого не сделал, компиляция выпала
+и при перезагрузке виртуалака стала колом. Пришлось сделать еще один клон. Я подумал что выделил мало памяти, не проверил, поэтому попал на эти грабли и во второй раз. 
+Но там уже не перегружал машину а расчистил частично памяти, установил gparted и добавил пространство к диску, после чего продолжил компиляцию.
+
+1.3 Выделим виртуалке 16 гигов памяти, иначе компиляция крайне медленная, больше 4-6 часов. возможно надо было еще и с процессорами поиграться.
+    в общем после выделения памяти  компилировалось примерно 2 часа 30 минут.  Компиляция была дважды, для конфигурации на основе старой конфигурации и по дефаулту
+    в последнем случае компиляция заняла минут 20, но видимо потому что  использовались ранее скомпилированные модули
+
+2. Подготовка к Компиляции
+2.1 Доставляем пакеты
+    sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
+
+2.2 lspci - смотрим текущую конфигурацию, что бы понять что нужно что нет. 
+
+root@wh-VirtualBox:/usr/src/linux# lspci
+00:00.0 Host bridge: Intel Corporation 440FX - 82441FX PMC [Natoma] (rev 02)
+00:01.0 ISA bridge: Intel Corporation 82371SB PIIX3 ISA [Natoma/Triton II]
+00:01.1 IDE interface: Intel Corporation 82371AB/EB/MB PIIX4 IDE (rev 01)
+00:02.0 VGA compatible controller: VMware SVGA II Adapter
+00:03.0 Ethernet controller: Intel Corporation 82540EM Gigabit Ethernet Controller (rev 02)
+00:04.0 System peripheral: InnoTek Systemberatung GmbH VirtualBox Guest Service
+00:05.0 Multimedia audio controller: Intel Corporation 82801AA AC'97 Audio Controller (rev 01)
+00:06.0 USB controller: Apple Inc. KeyLargo/Intrepid USB
+00:07.0 Bridge: Intel Corporation 82371AB/EB/MB PIIX4 ACPI (rev 08)
+00:08.0 Ethernet controller: Intel Corporation 82540EM Gigabit Ethernet Controller (rev 02)
+00:0b.0 USB controller: Intel Corporation 82801FB/FBM/FR/FW/FRW (ICH6 Family) USB2 EHCI Controller
+00:0d.0 SATA controller: Intel Corporation 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode] (rev 02)
+
+2.3 Качаем ядро  https://www.kernel.org/
+Качаем и разворачиваем в usr/src с ванильной ветки последню стабильную версию и создаем символьную ссылку на нее  linux, 
+может быть последнее устарело, но сделаем - можно через mc, можно командой ln -s /usr/src/linux-6.10.11 linux  
+root@wh-VirtualBox:/usr/src# ls
+linux          linux-headers-6.8.0-44          linux-headers-6.8.0-45
+linux-6.10.11  linux-headers-6.8.0-44-generic  linux-headers-6.8.0-45-generic
+
+6.8.0-44 0-45  - текущая версия ядра , не понятно почему их там две (?), если было поставленно с образа
+
+2.4  Скопируем файл конфигурации, на основе которой будем делать свою, для первого раза я брал отсюда linux-headers-6.8.0-45-generic    .config
+затем сделал архитектуру по умолчанию
+
+root@wh-VirtualBox:/usr/src/linux# make defconfig
+*** Default configuration is based on 'x86_64_defconfig'
+#
+# configuration written to .config 
+
+
+
+3. Настройка конфигурации
+
+3.1a  make oldconfig  - создает конфигурации на основе предыдущей, новые параметры нужно прощелкать, я жал ENTER (т.е. по умолчанию)
+
+3.1b  make defconfig  - создает конфигурацию по умолчанию
+
+я в начале проверил что все заработает на старой конфигурации, потом собрал и на конфигурации по умолчанию
+
+3.2 make menuconfig
+здесь полазил, но поскольку нормального описания настроек не нашел, особо ничего не менял, поддержку графической видеокарты только добавил VirtualBox
+на всякий случай, и то есть ощущение что можно было и не добавлять.
+По идее можно и нужно было выпиливать лишнее, но это долго и отдельно разбираться еще надо.
+
+3.3 Создаем метку
+gedit Makefile Extraversion=Alexandr_Deryuga
+
+
+
+4. Компиляция
+
+При попытке скомпилировать на старой конфигурации потребовалось разобраться с сертификатом  .pem
+
+Несколько способов попробовал, но заработал только этот
+scripts/config --disable SYSTEM_TRUSTED_KEYS
+scripts/config --disable SYSTEM_REVOCATION_KEYS
+
+не очень хорошее решение, как я понимаю, но для теста работает
+
+
+
+4.1 make  //make -j16  но у меня 1 процессор на виртуалке
+
+...
+  CC      arch/x86/boot/compressed/idt_64.o
+  AS      arch/x86/boot/compressed/idt_handlers_64.o
+  CC      arch/x86/boot/compressed/pgtable_64.o
+  CC      arch/x86/boot/compressed/acpi.o
+  CC      arch/x86/boot/compressed/efi.o
+  AS      arch/x86/boot/compressed/efi_mixed.o
+  GZIP    arch/x86/boot/compressed/vmlinux.bin.gz
+  CC      arch/x86/boot/compressed/misc.o
+  MKPIGGY arch/x86/boot/compressed/piggy.S
+  AS      arch/x86/boot/compressed/piggy.o
+  LD      arch/x86/boot/compressed/vmlinux
+  ZOFFSET arch/x86/boot/zoffset.h
+  OBJCOPY arch/x86/boot/vmlinux.bin
+  AS      arch/x86/boot/header.o
+  LD      arch/x86/boot/setup.elf
+  OBJCOPY arch/x86/boot/setup.bin
+  BUILD   arch/x86/boot/bzImage
+Kernel: arch/x86/boot/bzImage is ready  (#2)
+
+4.2 Компиляция модулей
+root@wh-VirtualBox:/usr/src/linux# make modules_install
+  SYMLINK /lib/modules/6.10.11Alexandr_Deruga/build
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/modules.order
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/modules.builtin
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/modules.builtin.modinfo
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/fs/efivarfs/efivarfs.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/drivers/thermal/intel/x86_pkg_temp_thermal.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/netfilter/nf_log_syslog.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/netfilter/xt_mark.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/netfilter/xt_nat.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/netfilter/xt_LOG.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/netfilter/xt_MASQUERADE.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/netfilter/xt_addrtype.ko
+  INSTALL /lib/modules/6.10.11Alexandr_Deruga/kernel/net/ipv4/netfilter/iptable_nat.ko
+  DEPMOD  /lib/modules/6.10.11Alexandr_Deruga
+root@wh-VirtualBox:/usr/src/linux# 
+
+(*) Здесь Сохраняем виртуалку на всякий случай (клонируем)
+
+4.3
+make install - скомпилировал, но поругался на недопустимый символ, изменил метку в Makefile и пересобрал на ADeryuga
+
+(*) Перезапускаем и проверяем что все работает
+
+wh@wh-VirtualBox:~$ uname -mrs
+Linux 6.10.11 x86_64
+wh@wh-VirtualBox:~$ 
+
+
+
+
+
+
+
+
+
+
+
