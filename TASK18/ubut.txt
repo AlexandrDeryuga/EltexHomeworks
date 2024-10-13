@@ -1,0 +1,314 @@
+ 1. качаем с гита ubut
+ git clone https://github.com/u-boot/u-boot
+
+2. Конфигурация
+2.1 make distclean - можно очистить
+2.2 смотрим цели
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ ARCH=arm make help  
+//получается целимогут завсить от платформы?
+Cleaning targets:
+  clean		  - Remove most generated files but keep the config
+  mrproper	  - Remove all generated files + config + various backup files
+  distclean	  - mrproper + remove editor backup and patch files
+
+Configuration targets:
+  config	  - Update current config utilising a line-oriented program
+  nconfig         - Update current config utilising a ncurses menu based program
+  menuconfig	  - Update current config utilising a menu based program
+  xconfig	  - Update current config utilising a Qt based front-end
+  gconfig	  - Update current config utilising a GTK+ based front-end
+  oldconfig	  - Update current config utilising a provided .config as base
+  localmodconfig  - Update current config disabling modules not loaded
+  localyesconfig  - Update current config converting local mods to core
+  defconfig	  - New config with default from ARCH supplied defconfig
+...
+
+2.3  Конфигурируем обычно 
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ ARCH=arm make defconfig
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ ARCH=arm make defconfig
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  YACC    scripts/kconfig/zconf.tab.c
+  LEX     scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+*** Default configuration is based on 'sandbox_defconfig'
+#
+# configuration written to .config
+#
+2.4 Sandbox не интересно, пересоберем конфигурацию
+
+Cleaning targets:
+  clean		  - Remove most generated files but keep the config
+  mrproper	  - Remove all generated files + config + various backup files
+  distclean	  - mrproper + remove editor backup and patch files
+
+Configuration targets:
+  config	  - Update current config utilising a line-oriented program
+  nconfig         - Update current config utilising a ncurses menu based program
+  menuconfig	  - Update current config utilising a menu based program
+  xconfig	  - Update current config utilising a Qt based front-end
+  gconfig	  - Update current config utilising a GTK+ based front-end
+  oldconfig	  - Update current config utilising a provided .config as base
+  localmodconfig  - Update current config disabling modules not loaded
+  localyesconfig  - Update current config converting local mods to core
+  defconfig	  - New config with default from ARCH supplied defconfig
+  savedefconfig   - Save current config as ./defconfig (minimal config)
+  allnoconfig	  - New config where all options are answered with no
+  allyesconfig	  - New config where all options are accepted with yes
+  allmodconfig	  - New config selecting modules when possible
+  alldefconfig    - New config with all symbols set to default
+  randconfig	  - New config with random answer to all options
+  listnewconfig   - List new options
+  olddefconfig	  - Same as oldconfig but sets new symbols to their
+                    default value without prompting
+  testconfig	  - Run Kconfig unit tests (requires python3 and pytest)
+
+Test targets:
+
+  check           - Run all automated tests that use sandbox
+  pcheck          - Run quick automated tests in parallel
+  qcheck          - Run quick automated tests that use sandbox
+  tcheck          - Run quick automated tests on tools
+  pylint          - Run pylint on all Python files
+
+Other generic targets:
+  all		  - Build all necessary images depending on configuration
+  tests		  - Build U-Boot for sandbox and run tests
+* u-boot	  - Build the bare u-boot
+  dir/            - Build all files in dir and below
+  dir/file.[oisS] - Build specified target only
+  dir/file.lst    - Build specified mixed source/assembly target only
+                    (requires a recent binutils and recent build (System.map))
+  tags/ctags	  - Generate ctags file for editors
+  etags		  - Generate etags file for editors
+  cscope	  - Generate cscope index
+  ubootrelease	  - Output the release version string (use with make -s)
+  ubootversion	  - Output the version stored in Makefile (use with make -s)
+  cfg		  - Don't build, just create the .cfg files
+  envtools	  - Build only the target-side environment tools
+
+PyPi / pip targets:
+  pip             - Check building of PyPi packages
+  pip_test        - Build PyPi pakages and upload to test server
+  pip_release     - Build PyPi pakages and upload to release server
+
+Static analysers
+  checkstack      - Generate a list of stack hogs
+  coccicheck      - Execute static code analysis with Coccinelle
+
+Documentation targets:
+ U-Boot documentation in different formats from ReST:
+  htmldocs        - HTML
+  texinfodocs     - Texinfo
+  infodocs        - Info
+  latexdocs       - LaTeX
+  pdfdocs         - PDF
+  epubdocs        - EPUB
+  xmldocs         - XML
+  linkcheckdocs   - check for broken external links (will connect to external hosts)
+  refcheckdocs    - check for references to non-existing files under Documentation
+  cleandocs       - clean all generated files
+
+  make SPHINXDIRS="s1 s2" [target] Generate only docs of folder s1, s2
+  valid values for SPHINXDIRS are: 
+
+  make SPHINX_CONF={conf-file} [target] use *additional* sphinx-build
+  configuration. This is e.g. useful to build with nit-picking config.
+
+  Default location for the generated documents is doc/output
+
+  make V=0|1 [targets] 0 => quiet build (default), 1 => verbose build
+  make V=2   [targets] 2 => give reason for rebuild of target
+  make O=dir [targets] Locate all output files in "dir", including .config
+  make C=1   [targets] Check all c source with $CHECK (sparse by default)
+  make C=2   [targets] Force check of all c source with $CHECK
+  make RECORDMCOUNT_WARN=1 [targets] Warn about ignored mcount sections
+  make W=n   [targets] Enable extra gcc checks, n=1,2,3 where
+		1: warnings which may be relevant and do not occur too often
+		2: warnings which occur quite often but may still be relevant
+		3: more obscure warnings, can most likely be ignored
+		Multiple levels can be combined with W=12 or W=123
+
+Execute "make" or "make all" to build all targets marked with [*] 
+For further info see the ./README file
+
+2.5 что за магия, такой конфигурации нет в хелпе, а оно работает make qemu_arm_defconfig
+
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ make distclean
+  CLEAN   scripts/basic
+  CLEAN   scripts/kconfig
+  CLEAN   .config
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ ARCH=arm make qemu_arm_defconfig
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  YACC    scripts/kconfig/zconf.tab.c
+  LEX     scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+#
+# configuration written to .config
+
+3. Сборка 
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- make -j16
+
+ UPD     include/config.h
+  CFG     u-boot.cfg
+  GEN     include/autoconf.mk.dep
+  GEN     include/autoconf.mk
+  ENVC    include/generated/env.txt
+  UPD     include/generated/dt.h
+  UPD     include/generated/timestamp_autogenerated.h
+  ENVP    include/generated/env.in
+  HOSTCC  scripts/dtc/dtc.o
+...
+  COPY    u-boot.bin
+  DTC     arch/arm/dts/qemu-arm.dtb
+  DTC     arch/arm/dts/qemu-arm64.dtb
+  SHIPPED dts/dt.dtb
+  OFCHK   .config
+wh@wh-VirtualBox:~/Git/EltexHomeworks/u-boot$ 
+
+4. Запуск 
+QEMU_AUDIO_DRV=none qemu-system-arm -M virt -bios u-boot.bin -nographic
+
+
+U-Boot 2024.10-rc6-00003-gaf69289d6187 (Oct 05 2024 - 23:36:19 +0700)
+
+DRAM:  128 MiB
+Core:  51 devices, 14 uclasses, devicetree: board
+Flash: 64 MiB
+Loading Environment from Flash... *** Warning - bad CRC, using default environment
+
+In:    serial,usbkbd
+Out:   serial,vidconsole
+Err:   serial,vidconsole
+No USB controllers found
+Net:   eth0: virtio-net#32
+
+starting USB...
+No USB controllers found
+Hit any key to stop autoboot:  0 
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+No EFI system partition
+No EFI system partition
+Failed to persist EFI variables
+Missing TPMv2 device for EFI_TCG_PROTOCOL
+Missing RNG device for EFI_RNG_PROTOCOL
+Scanning bootdev 'fw-cfg@9020000.bootdev':
+fatal: no kernel available
+No USB controllers found
+scanning bus for devices...
+BOOTP broadcast 1
+DHCP client bound to address 10.0.2.15 (4 ms)
+Scanning bootdev 'virtio-net#32.bootdev':
+BOOTP broadcast 1
+DHCP client bound to address 10.0.2.15 (0 ms)
+*** Warning: no boot file name; using '0A00020F.img'
+Using virtio-net#32 device
+TFTP from server 10.0.2.2; our IP address is 10.0.2.15
+Filename '0A00020F.img'.
+Load address: 0x40400000
+Loading: *
+TFTP error: 'Access violation' (2)
+Not retrying...
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> 
+
+5. Работа в ubut
+
+5.1
+=> help - посмотрели команды
+
+5.2
+=> env  - вся настройка здесь
+env - environment handling commands
+
+Usage:
+env default [-f] -a - [forcibly] reset default environment
+env default [-f] var [...] - [forcibly] reset variable(s) to their default values
+env delete [-f] var [...] - [forcibly] delete variable(s)
+env edit name - edit environment variable
+env exists name - tests for existence of variable
+env export [-t | -b | -c] [-s size] addr [var ...] - export environment
+env import [-d] [-t [-r] | -b | -c] addr [size] [var ...] - import environment
+env print [-a | name ...] - print environment
+env print -e [-guid guid] [-n] [name ...] - print UEFI environment
+env run var [...] - run commands in an environment variable
+env save - save environment
+env set -e [-nv][-bs][-rt][-at][-a][-i addr:size][-v] name [arg ...]
+    - set UEFI variable; unset if '-i' or 'arg' not specified
+env set [-f] name [arg ...]
+
+=> 
+
+//все будем делать через переменные окружения
+
+5.3   посмотрим что у нас
+=> env print  
+Unknown command '�' - try 'help'
+=> env print  
+arch=arm
+baudrate=115200
+board=qemu-arm
+board_name=qemu-arm
+boot_targets=qfw usb scsi virtio nvme dhcp
+bootcmd=bootflow scan -lb
+bootdelay=2
+bootp_arch=a
+bootp_vci=PXEClient:Arch:0000a:UNDI:003000
+cpu=armv7
+dnsip=10.0.2.3
+ethact=virtio-net#32
+ethaddr=52:54:00:12:34:56
+fdt_addr=0x40000000
+fdt_high=0xffffffff
+fdtcontroladdr=465dcea0
+gatewayip=10.0.2.2
+initrd_high=0xffffffff
+ipaddr=10.0.2.15
+kernel_addr_r=0x40400000
+loadaddr=0x40200000
+netmask=255.255.255.0
+preboot=usb start
+pxefile_addr_r=0x40300000
+ramdisk_addr_r=0x44000000
+scriptaddr=0x40200000
+serverip=10.0.2.2
+stderr=serial,vidconsole
+stdin=serial,usbkbd
+stdout=serial,vidconsole
+usb_ignorelist=0x1050:*,
+vendor=emulation
+
+Environment size: 682/262140 bytes
+=> 
+
+5.4 bootm  - загрузить
+
+
+6. Алгоритм
+
+6.1 Создаем флешку
+6.2 на флешке FAT раздел, ставим туда uboot
+6.3 там же расположим корневую фаловую систему
+6.4 стартуем железку, он найдет флешку ubut на ней, у нас будет уже написанный скрипт загрузки
+там прописано откуда бросить корневую файловую систему и dtb файлик
+6.5 все это + ядро загрузиться с флешки самим uboot , так как в скрипте будет bootm загрузиттся с таких то адресов, обычно 4 мегабайт
+
+7. Можно через переменные окружения
+ set env if_adr - здесь свой ip
+ env server_adr -  tftp адрес
+задать ip, и можно от туда скачать ядро, корневую файловую систему и dtb файлик
+
+8.run <имя переменно среды окружения, в которой и будет основной скрипт>
+9.загрузка bootm - из памяти, bootp - по сети, bootvx, bootz
+
+
+
+

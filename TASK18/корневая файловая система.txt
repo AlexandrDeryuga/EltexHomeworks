@@ -1,0 +1,193 @@
+Домашнее задание на корневую файловую систему, кросскомпиляция
+(Собираем под ARM, установка QEMU, установка busybox)
+
+
+0.  доставляем пакеты
+apt-get install libgnutls28-dev
+sudo apt-get install gcc-arm*
+
+1. Сборка ядра под ARM
+1.1 make distclean  
+1.2 ARCH=arm make defconfig                                          // конфигурируем
+1.3 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- make -j16 zImage     // компиляция
+
+2. установка qemu    просто так поставить не удалось, видео пакет устарел, помогло вот что:
+apt-get update
+sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virt-manager
+
+apt install qemu-system-arm
+
+
+3. сборка dts - afqkbr
+
+ARCH=arm make dtbs
+
+файл почему то оказался в поддиректории
+идем сюда root@wh-VirtualBox:/usr/src/proshivka/linux-6.10.11/arch/arm/boot/dts/arm#     
+и копируем vexpress-v2p-ca9.dtb в паку с ядром
+root@wh-VirtualBox:/usr/src/proshivka/linux-6.10.11/arch/arm/boot# 
+vexpress-v2p-ca9.dtb 
+
+
+4. Запуск ядра
+
+/usr/src#
+QEMU_AUDIO_DRV=none qemu-system-arm -M vexpress-a9 -kernel zImage -dtb vexpress-v2p-ca9.dtb -append "console=ttyAMA0" -nographic 
+
+
+5. сборка init.c
+
+root@wh-VirtualBox:/usr/src# arm-linux-gnueabihf-gcc -static init.c -o init
+root@wh-VirtualBox:/usr/src# ./init
+bash: ./init: не удаётся запустить бинарный файл: Ошибка формата выполняемого файла
+root@wh-VirtualBox:/usr/src# file ./init
+./init: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux), statically linked, BuildID[sha1]=74ae1a1d75d3fe40023e10d00dbf8ea1705a03d0, for GNU/Linux 3.2.0, not stripped
+root@wh-VirtualBox:/usr/src# 
+
+6. упаковываем и поместим к ядру
+echo init | cpio -o -H newc | gzip > initramfs.cpio.gz
+
+
+7. запуск
+QEMU_AUDIO_DRV=none qemu-system-arm -M vexpress-a9 -kernel zImage -initrd initramfs.cpio.gz -dtb vexpress-v2p-ca9.dtb -append "console=ttyAMA0" -nographic 
+
+
+результат  при sleep в init.c  на 135sec:
+
+[    1.540606] Freeing unused kernel image (initmem) memory: 2048K
+[    1.555928] Run /init as init process
+Hello!
+[    2.100605] input: ImExPS/2 Generic Explorer Mouse as /devices/platform/bus@40000000/bus@40000000:motherboard-bus@40000000/bus@40000000:motherboard-bus@40000000:iofpga@7,00000000/10007000.kmi/serio1/input/input2
+[   11.997487] amba 1000f000.wdt: deferred probe pending: (reason unknown)
+[   12.000054] amba 100e0000.memory-controller: deferred probe pending: (reason unknown)
+[   12.000675] amba 100e1000.memory-controller: deferred probe pending: (reason unknown)
+[   12.001275] amba 100e5000.watchdog: deferred probe pending: (reason unknown)
+[  136.626074] Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000000
+[  136.628273] CPU: 0 PID: 1 Comm: init Not tainted 6.10.11 #1
+[  136.630024] Hardware name: ARM-Versatile Express
+[  136.631606] Call trace: 
+[  136.631980]  unwind_backtrace from show_stack+0x10/0x14
+[  136.633648]  show_stack from dump_stack_lvl+0x54/0x68
+[  136.633727]  dump_stack_lvl from panic+0x10c/0x364
+[  136.633846]  panic from make_task_dead+0x0/0x164
+[  136.635515] ---[ end Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000000 ]---
+QEMU: Terminated
+
+
+8. Busybox - скачаем с сайта исходники
+9. Делаем стандартную конфигурацию
+root@wh-VirtualBox:/usr/src/busybox-1.36.1# ARCH=arm make defconfig
+10. тонкая настройка ARCH=arm make menuconfig
+
+---Build options
+[x] build static binary
+() cross compilation prefix жмеми вводим: arm-linux-gnueabihf-
+
+11. Сборка
+make -j16  // но у меня одно ядро  - не сработало, поругался на модуль network, чего то не хватает - просто зашли в конфигуратор и все отключим в network
+
+make //удачно
+root@wh-VirtualBox:/usr/src/busybox-1.36.1# file busybox   //смотрим что получилось
+busybox: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux), statically linked, BuildID[sha1]=7610a269cf8d0b4ebc7bf91d701fcbcfc570cf4a, for GNU/Linux 3.2.0, stripped
+
+12. Упаковываем и копируем результат к ядру, перезатирая прошлую корневую файловую систему
+find . | cpio -o -H newc | gzip > initramfs.cpio.gz
+
+root@wh-VirtualBox:/usr/src/proshivka/linux-6.10.11/arch/arm/boot# QEMU_AUDIO_DRV=none qemu-system-arm -M vexpress-a9 -kernel zImage -initrd initramfs.cpio.gz -dtb vexpress-v2p-ca9.dtb -append "console=ttyAMA0 rdinit=/bin/ash" -nographic 
+
+Результат - поругался на терминал но файловая система появилась:
+/bin/ash: can't access tty; job control turned off
+~ # [    2.264092] input: ImExPS/2 Generic Explorer Mouse as /devices/platform/bus@40000000/bus@40000000:motherboard-bus@40000000/bus@40000000:motherboard-bus@40000000:iofpga@7,00000000/10007000.kmi/serio1/input/input2
+[   11.985525] amba 1000f000.wdt: deferred probe pending: (reason unknown)
+[   11.986821] amba 100e0000.memory-controller: deferred probe pending: (reason unknown)
+[   11.986922] amba 100e1000.memory-controller: deferred probe pending: (reason unknown)
+[   11.987001] amba 100e5000.watchdog: deferred probe pending: (reason unknown)
+ls
+bin                initramfs.cpio.gz  root               usr
+dev                linuxrc            sbin
+~ # ps
+PID   USER     TIME  COMMAND
+ps: can't open '/proc': No such file or directory
+~ # cd usr
+/usr # ls
+bin   sbin
+/usr # 
+
+~ # mkdir sys
+~ # mount -t sysfs sys sys
+~ # ps
+PID   USER     TIME  COMMAND
+~ # 
+
+mount -t sysfs sys sys
+ps
+
+
+~ # ifconfig                                // естественно нет, сеть вся вырезана
+/bin/ash: ifconfig: not found
+~ # 
+
+
+~ # mount -t proc proc proc
+~ # ps
+PID   USER     TIME  COMMAND
+    1 0         0:01 /bin/ash
+    2 0         0:00 [kthreadd]
+    3 0         0:00 [pool_workqueue_]
+    4 0         0:00 [kworker/R-rcu_g]
+    5 0         0:00 [kworker/R-sync_]
+    6 0         0:00 [kworker/R-slub_]
+    7 0         0:01 [kworker/0:0-pm]
+    8 0         0:00 [kworker/0:0H-ev]
+    9 0         0:00 [kworker/0:1-pm]
+   11 0         0:00 [kworker/R-mm_pe]
+   12 0         0:00 [ksoftirqd/0]
+   13 0         0:00 [rcu_sched]
+   14 0         0:00 [rcu_exp_par_gp_]
+   15 0         0:00 [rcu_exp_gp_kthr]
+   16 0         0:00 [migration/0]
+   17 0         0:00 [cpuhp/0]
+   18 0         0:00 [cpuhp/1]
+   19 0         0:00 [migration/1]
+   20 0         0:00 [ksoftirqd/1]
+   21 0         0:00 [kworker/1:0]
+   22 0         0:00 [kworker/1:0H]
+   23 0         0:00 [cpuhp/2]
+   24 0         0:00 [migration/2]
+   25 0         0:00 [ksoftirqd/2]
+   26 0         0:00 [kworker/2:0]
+   27 0         0:00 [kworker/2:0H]
+   28 0         0:00 [cpuhp/3]
+   29 0         0:00 [migration/3]
+   30 0         0:00 [ksoftirqd/3]
+   31 0         0:00 [kworker/3:0]
+   32 0         0:00 [kworker/3:0H]
+   33 0         0:00 [kdevtmpfs]
+   34 0         0:00 [kworker/R-inet_]
+   35 0         0:00 [kworker/u16:1-e]
+   36 0         0:00 [oom_reaper]
+   37 0         0:00 [kworker/R-write]
+   38 0         0:00 [kcompactd0]
+   39 0         0:00 [kworker/R-kbloc]
+   40 0         0:00 [kworker/u16:2-e]
+   41 0         0:00 [kworker/R-ata_s]
+   42 0         0:00 [kworker/R-edac-]
+   43 0         0:00 [kworker/R-devfr]
+   44 0         0:00 [watchdogd]
+   45 0         0:00 [kworker/R-rpcio]
+   46 0         0:00 [kworker/0:1H]
+   47 0         0:00 [kworker/R-xprti]
+   49 0         0:00 [kswapd0]
+   50 0         0:00 [kworker/R-nfsio]
+   55 0         0:00 [kworker/u16:8-e]
+   60 0         0:00 [irq/35-mmci-pl1]
+   71 0         0:00 [kworker/R-mld]
+   72 0         0:00 [kworker/R-ipv6_]
+   86 0         0:00 ps
+
+
+~ # date
+Sat Sep 28 15:04:30 UTC 2024
+
+Ctrl+A x - выход из qemu
+
